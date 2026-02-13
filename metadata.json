@@ -1,0 +1,5 @@
+{
+  "name": "OCPP 1.6 Protocol Explorer",
+  "description": "A comprehensive interactive guide and reference for the Open Charge Point Protocol (OCPP) 1.6 specification, featuring detailed message structures, sequence diagrams, and an AI-powered protocol assistant.",
+  "requestFramePermissions": []
+}
