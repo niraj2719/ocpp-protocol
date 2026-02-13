@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { OCPP_DATA } from './data';
 import { OperationCard } from './components/OperationCard';
 import { AIAssistant } from './components/AIAssistant';
@@ -19,10 +19,21 @@ const App: React.FC = () => {
   const [selectedProfile, setSelectedProfile] = useState<FeatureProfile | 'All'>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Switch to operations tab when searching to show results
+  useEffect(() => {
+    if (searchQuery.trim() !== '' && activeTab !== 'operations') {
+      setActiveTab('operations');
+      setSelectedProfile('All');
+    }
+  }, [searchQuery]);
+
   const filteredOperations = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
     return OCPP_DATA.operations.filter(op => {
-      const matchesSearch = op.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            op.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = q === '' || 
+                            op.title.toLowerCase().includes(q) ||
+                            op.description.toLowerCase().includes(q) ||
+                            op.messages.some(m => m.toLowerCase().includes(q));
       const matchesProfile = selectedProfile === 'All' || op.profile === selectedProfile;
       return matchesSearch && matchesProfile;
     });
@@ -31,7 +42,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* Sidebar */}
-      <aside className="w-full md:w-80 bg-slate-900 text-white flex flex-col shrink-0 h-screen sticky top-0">
+      <aside className="w-full md:w-80 bg-slate-900 text-white flex flex-col shrink-0 h-screen sticky top-0 z-40">
         <div className="p-6 border-b border-slate-800">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
@@ -46,7 +57,7 @@ const App: React.FC = () => {
 
         <nav className="flex-1 py-4 px-4 space-y-1 overflow-y-auto custom-scrollbar">
           <button 
-            onClick={() => { setActiveTab('intro'); setSelectedProfile('All'); }}
+            onClick={() => { setActiveTab('intro'); setSelectedProfile('All'); setSearchQuery(''); }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'intro' ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
           >
             <i className="fas fa-book-open w-5 text-center"></i>
@@ -56,7 +67,7 @@ const App: React.FC = () => {
           <div className="pt-6 pb-2 px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Protocol Components</div>
           
           <button 
-            onClick={() => setActiveTab('operations')}
+            onClick={() => { setActiveTab('operations'); setSelectedProfile('All'); setSearchQuery(''); }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'operations' && selectedProfile === 'All' ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
           >
             <i className="fas fa-exchange-alt w-5 text-center"></i>
@@ -67,7 +78,7 @@ const App: React.FC = () => {
             {PROFILES.map(profile => (
               <button 
                 key={profile}
-                onClick={() => { setActiveTab('operations'); setSelectedProfile(profile); }}
+                onClick={() => { setActiveTab('operations'); setSelectedProfile(profile); setSearchQuery(''); }}
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs transition-all ${activeTab === 'operations' && selectedProfile === profile ? 'text-indigo-400 bg-indigo-600/10' : 'text-slate-500 hover:text-slate-300'}`}
               >
                 <div className={`w-1 h-1 rounded-full ${activeTab === 'operations' && selectedProfile === profile ? 'bg-indigo-400' : 'bg-slate-700'}`}></div>
@@ -77,7 +88,7 @@ const App: React.FC = () => {
           </div>
           
           <button 
-            onClick={() => setActiveTab('types')}
+            onClick={() => { setActiveTab('types'); setSelectedProfile('All'); setSearchQuery(''); }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mt-4 transition-all ${activeTab === 'types' ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
           >
             <i className="fas fa-brackets-curly w-5 text-center"></i>
@@ -85,7 +96,7 @@ const App: React.FC = () => {
           </button>
           
           <button 
-            onClick={() => setActiveTab('config')}
+            onClick={() => { setActiveTab('config'); setSelectedProfile('All'); setSearchQuery(''); }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'config' ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
           >
             <i className="fas fa-sliders-h w-5 text-center"></i>
@@ -116,9 +127,11 @@ const App: React.FC = () => {
                 )}
               </nav>
               <h2 className="text-4xl font-black text-slate-900 tracking-tight">
-                {activeTab === 'intro' ? 'Protocol Architecture' : 
-                 activeTab === 'operations' ? (selectedProfile === 'All' ? 'Operations Index' : selectedProfile) : 
-                 activeTab.replace('-', ' ')}
+                {searchQuery ? 'Search Results' : (
+                  activeTab === 'intro' ? 'Protocol Architecture' : 
+                  activeTab === 'operations' ? (selectedProfile === 'All' ? 'Operations Index' : selectedProfile) : 
+                  activeTab.replace('-', ' ')
+                )}
               </h2>
             </div>
             
@@ -136,12 +149,12 @@ const App: React.FC = () => {
         </header>
 
         <div className="max-w-6xl mx-auto pb-32">
-          {activeTab === 'intro' && (
+          {activeTab === 'intro' && !searchQuery && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in duration-700">
               {OCPP_DATA.introduction.map(section => (
                 <div key={section.id} className="bg-white p-10 rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col">
                   <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mb-6">
-                    <i className={`fas ${section.id === 'intro' ? 'fa-info-circle' : 'fa-network-wired'} text-xl`}></i>
+                    <i className={`fas ${section.id === 'intro' ? 'fa-info-circle' : section.id === 'transport' ? 'fa-network-wired' : 'fa-list-ul'} text-xl`}></i>
                   </div>
                   <h3 className="text-2xl font-bold text-slate-900 mb-4">{section.title}</h3>
                   <p className="text-slate-600 leading-relaxed text-lg">{section.content}</p>
@@ -163,7 +176,7 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'operations' && (
+          {(activeTab === 'operations' || searchQuery) && (
             <div className="space-y-10 animate-in slide-in-from-bottom-6 duration-700">
               {filteredOperations.length > 0 ? (
                 filteredOperations.map(op => (
@@ -176,14 +189,22 @@ const App: React.FC = () => {
               ) : (
                 <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200">
                   <div className="text-slate-300 text-5xl mb-4"><i className="fas fa-search"></i></div>
-                  <h3 className="text-xl font-bold text-slate-800">No operations found</h3>
-                  <p className="text-slate-500">Try adjusting your search or profile filter.</p>
+                  <h3 className="text-xl font-bold text-slate-800">No results match your search</h3>
+                  <p className="text-slate-500 mt-2">Try searching for core operations like "Authorize" or "StatusNotification".</p>
+                  {selectedProfile !== 'All' && (
+                    <button 
+                      onClick={() => setSelectedProfile('All')}
+                      className="mt-6 text-indigo-600 font-bold hover:underline"
+                    >
+                      Clear profile filter
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           )}
 
-          {activeTab === 'types' && (
+          {activeTab === 'types' && !searchQuery && (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 animate-in fade-in duration-700">
               {OCPP_DATA.types.map((type, idx) => (
                 <div key={idx} className="bg-white p-10 rounded-3xl shadow-sm border border-slate-100">
@@ -205,7 +226,7 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'config' && (
+          {activeTab === 'config' && !searchQuery && (
             <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden animate-in fade-in duration-700">
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
